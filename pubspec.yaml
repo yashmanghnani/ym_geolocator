@@ -2,7 +2,7 @@ name: ym_geolocator
 description: Geolocation plugin for Flutter. This plugin provides a cross-platform (iOS, Android) API for generic location (GPS etc.) functions.
 repository: https://github.com/yashmanghnani/ym_geolocator
 issue_tracker: https://github.com/yashmanghnani/ym_geolocator/issues
-version: 14.0.2
+version: 0.0.1
 
 environment:
   sdk: ^3.7.2
