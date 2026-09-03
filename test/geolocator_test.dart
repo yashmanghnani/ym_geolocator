@@ -1,215 +1,208 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ym_geolocator/geolocator.dart';
-import 'package:mockito/mockito.dart';
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:ym_geolocator/ym_geolocator.dart';
 
-Position get mockPosition => Position(
-    latitude: 52.561270,
-    longitude: 5.639382,
-    timestamp: DateTime.fromMillisecondsSinceEpoch(
-      500,
-      isUtc: true,
-    ),
-    altitude: 3000.0,
-    altitudeAccuracy: 0.0,
-    accuracy: 0.0,
-    heading: 0.0,
-    headingAccuracy: 0.0,
-    speed: 0.0,
-    speedAccuracy: 0.0);
+final Position mockPosition = Position(
+  latitude: 52.561270,
+  longitude: 5.639382,
+  timestamp: DateTime.fromMillisecondsSinceEpoch(500, isUtc: true),
+  altitude: 3000.0,
+  altitudeAccuracy: 0.0,
+  accuracy: 0.0,
+  heading: 0.0,
+  headingAccuracy: 0.0,
+  speed: 0.0,
+  speedAccuracy: 0.0,
+);
 
 void main() {
+  late FakeGeolocatorPlatform platform;
+
+  setUp(() {
+    platform = FakeGeolocatorPlatform();
+    GeolocatorPlatform.instance = platform;
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  tearDown(() {
+    debugDefaultTargetPlatformOverride = null;
+  });
+
   group('Geolocator', () {
-    setUp(() {
-      GeolocatorPlatform.instance = MockGeolocatorPlatform();
+    test('checkPermission delegates to the platform', () async {
+      expect(await Geolocator.checkPermission(), LocationPermission.whileInUse);
     });
 
-    test('checkPermission', () async {
-      final permission = await Geolocator.checkPermission();
-
-      expect(permission, LocationPermission.whileInUse);
+    test('requestPermission delegates to the platform', () async {
+      expect(
+        await Geolocator.requestPermission(),
+        LocationPermission.whileInUse,
+      );
     });
 
-    test('requestPermission', () async {
-      final permission = await Geolocator.requestPermission();
-
-      expect(permission, LocationPermission.whileInUse);
+    test('isLocationServiceEnabled delegates to the platform', () async {
+      expect(await Geolocator.isLocationServiceEnabled(), isTrue);
     });
 
-    test('isLocationServiceEnabled', () async {
-      final isLocationServiceEnabled =
-          await Geolocator.isLocationServiceEnabled();
-
-      expect(isLocationServiceEnabled, true);
-    });
-
-    test('getLastKnownPosition', () async {
-      final position = await Geolocator.getLastKnownPosition();
-
-      expect(position, mockPosition);
-    });
-
-    test('getCurrentPosition', () async {
-      final position = await Geolocator.getCurrentPosition();
-
-      expect(position, mockPosition);
-    });
-
-    test('getCurrentPosition iOS', () async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-      final position = await Geolocator.getCurrentPosition();
-      expect(position, mockPosition);
-      debugDefaultTargetPlatformOverride = null;
-    });
-
-    test('getLocationAccuracy', () async {
-      final accuracy = await Geolocator.getLocationAccuracy();
-
-      expect(accuracy, LocationAccuracyStatus.reduced);
-    });
-
-    test('requestTemporaryFullAccuracy', () async {
-      final accuracy = await Geolocator.requestTemporaryFullAccuracy(
-        purposeKey: "purposeKeyValue",
+    test('getLastKnownPosition forwards the legacy Android flag', () async {
+      final position = await Geolocator.getLastKnownPosition(
+        forceAndroidLocationManager: true,
       );
 
-      expect(accuracy, LocationAccuracyStatus.reduced);
+      expect(position, mockPosition);
+      expect(platform.lastForceLocationManager, isTrue);
     });
 
-    test('getServiceStatusStream', () {
-      when(GeolocatorPlatform.instance.getServiceStatusStream())
-          .thenAnswer((_) => Stream.value(ServiceStatus.enabled));
+    test('getCurrentPosition creates platform defaults', () async {
+      expect(await Geolocator.getCurrentPosition(), mockPosition);
 
-      final locationService = Geolocator.getServiceStatusStream();
-
-      expect(locationService,
-          emitsInOrder([emits(ServiceStatus.enabled), emitsDone]));
+      expect(platform.lastCurrentPositionSettings, isA<LocationSettings>());
+      expect(
+        platform.lastCurrentPositionSettings!.accuracy,
+        LocationAccuracy.best,
+      );
     });
 
-    test('getPositionStream', () {
-      when(GeolocatorPlatform.instance.getPositionStream(
-          locationSettings: const LocationSettings(
+    test('getCurrentPosition creates Android settings on Android', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final timeLimit = const Duration(seconds: 10);
+
+      await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        forceAndroidLocationManager: true,
+        timeLimit: timeLimit,
+      );
+
+      final settings = platform.lastCurrentPositionSettings;
+      expect(settings, isA<AndroidSettings>());
+      final androidSettings = settings! as AndroidSettings;
+      expect(androidSettings.accuracy, LocationAccuracy.high);
+      expect(androidSettings.forceLocationManager, isTrue);
+      expect(androidSettings.timeLimit, timeLimit);
+    });
+
+    test('getCurrentPosition preserves explicit settings', () async {
+      final settings = LocationSettings(
+        accuracy: LocationAccuracy.low,
+        distanceFilter: 25,
+      );
+
+      await Geolocator.getCurrentPosition(locationSettings: settings);
+
+      expect(platform.lastCurrentPositionSettings, same(settings));
+    });
+
+    test('getLocationAccuracy delegates to the platform', () async {
+      expect(
+        await Geolocator.getLocationAccuracy(),
+        LocationAccuracyStatus.reduced,
+      );
+    });
+
+    test('requestTemporaryFullAccuracy forwards the purpose key', () async {
+      await Geolocator.requestTemporaryFullAccuracy(
+        purposeKey: 'purposeKeyValue',
+      );
+
+      expect(platform.lastPurposeKey, 'purposeKeyValue');
+    });
+
+    test('getServiceStatusStream delegates to the platform', () async {
+      expect(
+        await Geolocator.getServiceStatusStream().single,
+        ServiceStatus.enabled,
+      );
+    });
+
+    test('getPositionStream forwards location settings', () async {
+      final settings = LocationSettings(
         accuracy: LocationAccuracy.best,
-        timeLimit: null,
-      ))).thenAnswer((_) => Stream.value(mockPosition));
+        distanceFilter: 10,
+      );
 
-      final position = Geolocator.getPositionStream();
-
-      expect(position, emitsInOrder([emits(mockPosition), emitsDone]));
+      expect(
+        await Geolocator.getPositionStream(locationSettings: settings).single,
+        mockPosition,
+      );
+      expect(platform.lastStreamSettings, same(settings));
     });
 
-    test('openAppSettings', () async {
-      final hasOpened = await Geolocator.openAppSettings();
-      expect(hasOpened, true);
+    test('openAppSettings delegates to the platform', () async {
+      expect(await Geolocator.openAppSettings(), isTrue);
     });
 
-    test('openLocationSettings', () async {
-      final hasOpened = await Geolocator.openLocationSettings();
-      expect(hasOpened, true);
+    test('openLocationSettings delegates to the platform', () async {
+      expect(await Geolocator.openLocationSettings(), isTrue);
     });
 
-    test('distanceBetween', () {
-      final distance = Geolocator.distanceBetween(0, 0, 0, 0);
-      expect(distance, 42);
+    test('distanceBetween returns meters', () {
+      expect(Geolocator.distanceBetween(0, 0, 0, 1), closeTo(111319.49, 0.01));
     });
 
-    test('bearingBetween', () {
-      final bearing = Geolocator.bearingBetween(0, 0, 0, 0);
-      expect(bearing, 42);
+    test('bearingBetween returns the initial bearing', () {
+      expect(Geolocator.bearingBetween(0, 0, 0, 1), closeTo(90, 0.001));
     });
   });
 }
 
-class MockGeolocatorPlatform extends Mock
-    with
-        // ignore: prefer_mixin
-        MockPlatformInterfaceMixin
-    implements
-        GeolocatorPlatform {
-  @override
-  Future<LocationPermission> checkPermission() =>
-      Future.value(LocationPermission.whileInUse);
+class FakeGeolocatorPlatform extends GeolocatorPlatform {
+  LocationSettings? lastCurrentPositionSettings;
+  LocationSettings? lastStreamSettings;
+  bool lastForceLocationManager = false;
+  String? lastPurposeKey;
 
   @override
-  Future<LocationPermission> requestPermission() =>
-      Future.value(LocationPermission.whileInUse);
+  Future<LocationPermission> checkPermission() async =>
+      LocationPermission.whileInUse;
 
   @override
-  Future<bool> isLocationServiceEnabled() => Future.value(true);
+  Future<LocationPermission> requestPermission() async =>
+      LocationPermission.whileInUse;
 
   @override
-  Future<Position> getLastKnownPosition({
+  Future<bool> isLocationServiceEnabled() async => true;
+
+  @override
+  Future<Position?> getLastKnownPosition({
     bool forceLocationManager = false,
-  }) =>
-      Future.value(mockPosition);
+  }) async {
+    lastForceLocationManager = forceLocationManager;
+    return mockPosition;
+  }
 
   @override
   Future<Position> getCurrentPosition({
     LocationSettings? locationSettings,
-  }) =>
-      Future.value(mockPosition);
-
-  @override
-  Stream<ServiceStatus> getServiceStatusStream() {
-    return super.noSuchMethod(
-      Invocation.method(
-        #getServiceStatusStream,
-        null,
-      ),
-      returnValue: Stream.value(ServiceStatus.enabled),
-    );
+  }) async {
+    lastCurrentPositionSettings = locationSettings;
+    return mockPosition;
   }
 
   @override
-  Stream<Position> getPositionStream({
-    LocationSettings? locationSettings,
-  }) {
-    return super.noSuchMethod(
-      Invocation.method(
-        #getPositionStream,
-        null,
-        <Symbol, Object?>{
-          #desiredAccuracy: locationSettings?.accuracy ?? LocationAccuracy.best,
-          #distanceFilter: locationSettings?.distanceFilter ?? 0,
-          #timeLimit: locationSettings?.timeLimit ?? 0,
-        },
-      ),
-      returnValue: Stream.value(mockPosition),
-    );
+  Stream<ServiceStatus> getServiceStatusStream() =>
+      Stream.value(ServiceStatus.enabled);
+
+  @override
+  Stream<Position> getPositionStream({LocationSettings? locationSettings}) {
+    lastStreamSettings = locationSettings;
+    return Stream.value(mockPosition);
   }
 
   @override
-  Future<bool> openAppSettings() => Future.value(true);
-
-  @override
-  Future<LocationAccuracyStatus> getLocationAccuracy() =>
-      Future.value(LocationAccuracyStatus.reduced);
+  Future<LocationAccuracyStatus> getLocationAccuracy() async =>
+      LocationAccuracyStatus.reduced;
 
   @override
   Future<LocationAccuracyStatus> requestTemporaryFullAccuracy({
     required String purposeKey,
-  }) =>
-      Future.value(LocationAccuracyStatus.reduced);
+  }) async {
+    lastPurposeKey = purposeKey;
+    return LocationAccuracyStatus.reduced;
+  }
 
   @override
-  Future<bool> openLocationSettings() => Future.value(true);
+  Future<bool> openAppSettings() async => true;
 
   @override
-  double distanceBetween(
-    double startLatitude,
-    double startLongitude,
-    double endLatitude,
-    double endLongitude,
-  ) =>
-      42;
-
-  @override
-  double bearingBetween(
-    double startLatitude,
-    double startLongitude,
-    double endLatitude,
-    double endLongitude,
-  ) =>
-      42;
+  Future<bool> openLocationSettings() async => true;
 }

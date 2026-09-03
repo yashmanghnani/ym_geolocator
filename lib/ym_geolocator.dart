@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:ym_geolocator_android/geolocator_android.dart';
 import 'package:geolocator_apple/geolocator_apple.dart';
 import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
+import 'package:ym_geolocator_android/geolocator_android.dart';
 
 export 'package:ym_geolocator_android/geolocator_android.dart'
     show
@@ -54,10 +54,11 @@ class Geolocator {
   /// passing true to the [forceAndroidLocationManager] parameter. On iOS
   /// this parameter is ignored.
   /// When no position is available, null is returned.
-  static Future<Position?> getLastKnownPosition(
-          {bool forceAndroidLocationManager = false}) =>
-      GeolocatorPlatform.instance.getLastKnownPosition(
-          forceLocationManager: forceAndroidLocationManager);
+  static Future<Position?> getLastKnownPosition({
+    bool forceAndroidLocationManager = false,
+  }) => GeolocatorPlatform.instance.getLastKnownPosition(
+    forceLocationManager: forceAndroidLocationManager,
+  );
 
   /// Returns the current position.
   ///
@@ -119,34 +120,43 @@ class Geolocator {
   static Future<Position> getCurrentPosition({
     LocationSettings? locationSettings,
     @Deprecated(
-        "use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings")
+      "use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings",
+    )
     LocationAccuracy desiredAccuracy = LocationAccuracy.best,
     @Deprecated(
-        "use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings")
+      "use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings",
+    )
     bool forceAndroidLocationManager = false,
     @Deprecated(
-        "use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings")
+      "use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings",
+    )
     Duration? timeLimit,
   }) {
-    LocationSettings? settings;
+    return GeolocatorPlatform.instance.getCurrentPosition(
+      locationSettings:
+          locationSettings ??
+          _createDefaultLocationSettings(
+            desiredAccuracy: desiredAccuracy,
+            forceAndroidLocationManager: forceAndroidLocationManager,
+            timeLimit: timeLimit,
+          ),
+    );
+  }
 
-    if (locationSettings != null) {
-      settings = locationSettings;
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      settings = AndroidSettings(
+  static LocationSettings _createDefaultLocationSettings({
+    required LocationAccuracy desiredAccuracy,
+    required bool forceAndroidLocationManager,
+    required Duration? timeLimit,
+  }) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
         accuracy: desiredAccuracy,
         forceLocationManager: forceAndroidLocationManager,
         timeLimit: timeLimit,
       );
     }
 
-    settings ??= LocationSettings(
-      accuracy: desiredAccuracy,
-      timeLimit: timeLimit,
-    );
-
-    return GeolocatorPlatform.instance
-        .getCurrentPosition(locationSettings: settings);
+    return LocationSettings(accuracy: desiredAccuracy, timeLimit: timeLimit);
   }
 
   /// Fires whenever the location changes inside the bounds of the
@@ -187,10 +197,9 @@ class Geolocator {
   /// but the location services of the device are disabled.
   static Stream<Position> getPositionStream({
     LocationSettings? locationSettings,
-  }) =>
-      GeolocatorPlatform.instance.getPositionStream(
-        locationSettings: locationSettings,
-      );
+  }) => GeolocatorPlatform.instance.getPositionStream(
+    locationSettings: locationSettings,
+  );
 
   /// Returns a [Future] containing a [LocationAccuracyStatus]
   /// When the user has given permission for approximate location,
@@ -221,10 +230,9 @@ class Geolocator {
   /// using other platforms.
   static Future<LocationAccuracyStatus> requestTemporaryFullAccuracy({
     required String purposeKey,
-  }) =>
-      GeolocatorPlatform.instance.requestTemporaryFullAccuracy(
-        purposeKey: purposeKey,
-      );
+  }) => GeolocatorPlatform.instance.requestTemporaryFullAccuracy(
+    purposeKey: purposeKey,
+  );
 
   /// Opens the App settings page.
   ///
@@ -251,13 +259,12 @@ class Geolocator {
     double startLongitude,
     double endLatitude,
     double endLongitude,
-  ) =>
-      GeolocatorPlatform.instance.distanceBetween(
-        startLatitude,
-        startLongitude,
-        endLatitude,
-        endLongitude,
-      );
+  ) => GeolocatorPlatform.instance.distanceBetween(
+    startLatitude,
+    startLongitude,
+    endLatitude,
+    endLongitude,
+  );
 
   /// Calculates the initial bearing between two points
   ///
@@ -270,11 +277,10 @@ class Geolocator {
     double startLongitude,
     double endLatitude,
     double endLongitude,
-  ) =>
-      GeolocatorPlatform.instance.bearingBetween(
-        startLatitude,
-        startLongitude,
-        endLatitude,
-        endLongitude,
-      );
+  ) => GeolocatorPlatform.instance.bearingBetween(
+    startLatitude,
+    startLongitude,
+    endLatitude,
+    endLongitude,
+  );
 }

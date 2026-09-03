@@ -1,0 +1,21 @@
+# Dart and Flutter tooling
+.dart_tool/
+.packages
+.pub/
+build/
+coverage/
+pubspec_overrides.yaml
+
+# Flutter platform-generated files
+**/Flutter/ephemeral/
+**/flutter/ephemeral/
+
+# Android/Gradle build output
+**/.gradle/
+**/.kotlin/
+**/local.properties
+
+# IDE and OS files
+.idea/
+*.iml
+.DS_Store

@@ -1,16 +1,18 @@
-# geolocator_example
+# ym_geolocator example
 
-Demonstrates how to use the geolocator plugin.
+This Flutter application demonstrates the permission flow, current and cached
+positions, continuous position updates, service status changes, and settings
+shortcuts exposed by [`ym_geolocator`](../README.md).
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+From this directory:
 
-A few resources to get you started if this is your first Flutter project:
+```shell
+flutter pub get
+flutter run
+```
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The example requires Flutter 3.47.2 or newer. Location permissions must be
+granted on the selected device or simulator before location APIs can return
+data.
