@@ -9,6 +9,10 @@ pubspec_overrides.yaml
 # Flutter platform-generated files
 **/Flutter/ephemeral/
 **/flutter/ephemeral/
+**/Flutter/Generated.xcconfig
+**/flutter_export_environment.sh
+.flutter-plugins*
+**/ephemeral/.plugin_symlinks/
 
 # Android/Gradle build output
 **/.gradle/

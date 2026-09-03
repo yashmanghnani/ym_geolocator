@@ -1,0 +1,12 @@
+# Local/tool-generated files are not part of the published package.
+.dart_tool/
+**/.dart_tool/
+**/.gradle/
+**/.kotlin/
+**/build/
+**/ephemeral/
+**/local.properties
+.flutter-plugins*
+**/Flutter/Generated.xcconfig
+**/flutter_export_environment.sh
+**/ephemeral/.plugin_symlinks/
